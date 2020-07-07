@@ -1,8 +1,13 @@
 
+#include <FastLED.h>
+#include <Custom_SSD1306.h>
+
+FASTLED_USING_NAMESPACE;
+
 /*  File: ssd1306_LEDMessage
  *  Author: O. Dettman
  *  Original Date: 2020-06-14
- *  Revised Date: 2020-06-19
+ *  Revised Date: 2020-07-06
  *  
  *  Summary:
  *      Displays some basic information on a 128x96 OLED:
@@ -25,9 +30,13 @@
  *  CHANGES
  *      2020-06-19  Removed references to IFTTT using the ledMessageText function. All IFTTT traffic goes through the publish event.
  *                  Function is still available to call to change an individual device message.
+ *      2020-07-06  Integrated FastLED to light up a string of 30 WS2812B LEDs when then message changes
 */
 
-#include <Custom_SSD1306.h>
+// Rquired by the FastLED Library
+#define LED_PIN     5
+#define NUM_LEDS    256
+CRGB leds[NUM_LEDS];
 
 // Initialize objects from the lib
 Custom_SSD1306 oled;
@@ -36,6 +45,9 @@ String ledMessageText; // = "No Message Set";
 IPAddress localip;
 
 void setup() {
+  // FastLED initiation
+  FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS);  // GRB ordering is typical  
+  
   oled.begin();
   oled.clearDisplay();
   oled.display();
@@ -63,8 +75,8 @@ void setup() {
   }
   
   // Switch below lines depending on WiFi vs Cellular connection method
-  // localip = WiFi.localIP();
-  localip = Cellular.localIP();
+  localip = WiFi.localIP();
+  // localip = Cellular.localIP();
   
   oled.clearDisplay();
   oled.display();
@@ -78,21 +90,44 @@ void loop() {
   oled.drawCenteredString(0,time);
   oled.setTextSize(1);
   oled.setTextColor(WHITE);
-  oled.drawCenteredString(16,"LED Display");
+  oled.drawCenteredString(16,"LED DISPLAY");
   oled.drawCenteredString(26,ipAddress);
   oled.setCursor(0,32);
   oled.println();
   oled.println(ledMessageText);
   oled.display();
   delay(50);
+  
+  //leds[5] = CRGB::Red;
+  //FastLED.show();
+  //delay(500);
+  //leds[5] = CRGB::Black;
+  //FastLED.show();
+  //delay(500);
+}
+
+void ledUpdateRoutine() {
+    for (int i=0; i<NUM_LEDS; i++) {
+        leds[i]=CRGB::Blue;
+        FastLED.show();
+        // delay(20);
+    }
+    for (int i=0; i<NUM_LEDS; i++) {
+        leds[i]=CRGB::Black;
+        FastLED.show();
+        // delay(20);
+    }
+    
 }
 
 int ledMessage(String messagetext) {
     ledMessageText = messagetext;
     oled.clearDisplay();
     // Switch below lines depending on WiFi vs Cellular connection method
-    // localip = WiFi.localIP();
-    localip = Cellular.localIP();
+    localip = WiFi.localIP();
+    // localip = Cellular.localIP();
+    
+    ledUpdateRoutine();
 }
 
 void ledChangeMessage(String event, String data) {
@@ -101,3 +136,5 @@ void ledChangeMessage(String event, String data) {
     //              and show "OFF" on the OLED.
     ledMessage(data);
 }
+
+
